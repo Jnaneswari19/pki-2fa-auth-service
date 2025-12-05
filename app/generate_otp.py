@@ -1,17 +1,24 @@
-import base64
 import pyotp
+import base64
+import os
 
-# Paste your decrypted seed here
-hex_seed = "1e6d65925fdbb82e5f840db7239fd73c60227de1953cd46ee1d0bda859634814"
+def generate_secret() -> str:
+    """
+    Generate a new random base32 secret for TOTP.
+    """
+    return pyotp.random_base32()
 
-# Convert hex → bytes
-seed_bytes = bytes.fromhex(hex_seed)
+def generate_totp(secret: str) -> str:
+    """
+    Generate a current TOTP code from a base32 secret.
+    """
+    totp = pyotp.TOTP(secret)
+    return totp.now()
 
-# Convert bytes → base32 (TOTP requires base32)
-base32_seed = base64.b32encode(seed_bytes).decode()
-
-print("Base32 Seed:", base32_seed)
-
-# Generate TOTP
-totp = pyotp.TOTP(base32_seed)
-print("Current OTP:", totp.now())
+def verify_totp(secret: str, code: str, window: int = 1) -> bool:
+    """
+    Verify a TOTP code against the given secret.
+    Allows a small time window for clock drift.
+    """
+    totp = pyotp.TOTP(secret)
+    return totp.verify(code, valid_window=window)

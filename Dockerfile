@@ -1,30 +1,29 @@
-# Use Python 3.10 slim
-FROM python:3.10-slim
+# Stage 1: Builder
+FROM python:3.9-slim AS builder
 
-# Install cron and bash
-RUN apt-get update && apt-get install -y cron bash && rm -rf /var/lib/apt/lists/*
-
-# Set working directory
 WORKDIR /app
 
+# Install dependencies into a user-local path
+COPY requirements.txt .
+RUN pip install --user -r requirements.txt
+
+# Stage 2: Runtime
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Copy installed packages from builder stage
+COPY --from=builder /root/.local /root/.local
+
+# Update PATH so Python can find installed packages
+ENV PATH=/root/.local/bin:$PATH
+
 # Copy application code
-COPY app/ /app/
+COPY . .
 
-# Install Python dependencies
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Expose FastAPI port
+EXPOSE 8000
 
-# Ensure /data exists and is writable
-RUN mkdir -p /data && chmod 777 /data
+# Run FastAPI app
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
-# Copy seed files
-COPY data/seed.txt /data/seed.txt
-COPY data/encrypted_seed.txt /data/encrypted_seed.txt
-
-# Copy cron job and set permissions
-COPY app/cron/2fa-cron /etc/cron.d/2fa-cron
-RUN chmod 0644 /etc/cron.d/2fa-cron && crontab /etc/cron.d/2fa-cron
-
-# Start cron in foreground and uvicorn
-# JSON array form ensures proper signal handling
-CMD ["sh", "-c", "cron -f & uvicorn main:app --host 0.0.0.0 --port 8000"]
