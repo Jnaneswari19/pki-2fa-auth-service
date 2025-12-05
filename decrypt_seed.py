@@ -1,27 +1,53 @@
-# decrypt_seed.py
+#!/usr/bin/env python3
 import base64
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding
+from pathlib import Path
 
-# Load private key
-with open("student_private.pem", "rb") as f:
-    private_key = serialization.load_pem_private_key(f.read(), password=None)
+STUDENT_PRIV = Path("student_private.pem")
 
-# Load encrypted seed
-with open("encrypted_seed.txt", "r") as f:
-    encrypted_seed_b64 = f.read().strip()
-encrypted_seed = base64.b64decode(encrypted_seed_b64)
+def _fix_b64(s: str) -> bytes:
+    s = s.replace("\n", "").replace("\r", "")
+    s = s + "=" * (-len(s) % 4)
+    return base64.b64decode(s)
 
-# Decrypt
-seed_bytes = private_key.decrypt(
-    encrypted_seed,
-    padding.OAEP(
-        mgf=padding.MGF1(algorithm=hashes.SHA256()),
-        algorithm=hashes.SHA256(),
-        label=None
+def load_private_key(path: Path = STUDENT_PRIV):
+    with open(path, "rb") as f:
+        return serialization.load_pem_private_key(f.read(), password=None)
+
+def decrypt_seed_b64(encrypted_seed_b64: str, priv_key=None) -> bytes:
+    if priv_key is None:
+        priv_key = load_private_key()
+    enc = _fix_b64(encrypted_seed_b64)
+    plaintext = priv_key.decrypt(
+        enc,
+        padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                     algorithm=hashes.SHA256(),
+                     label=None)
     )
-)
+    return plaintext  # raw bytes
 
-# Save as hex string
-with open("data/seed.txt", "w") as f:
-    f.write(seed_bytes.hex())
+def decrypt_seed_hexstr_from_b64(encrypted_seed_b64: str) -> str:
+    return decrypt_seed_b64(encrypted_seed_b64).hex()
+
+# ------------------------------
+# REQUIRED BY FastAPI main.py
+# ------------------------------
+def decrypt_seed(encrypted_seed_b64: str) -> str:
+    """
+    Wrapper used by FastAPI. Returns the decrypted seed as a UTF-8 string.
+    """
+    raw = decrypt_seed_b64(encrypted_seed_b64)
+    try:
+        return raw.decode()     # if seed is UTF-8 text
+    except:
+        return raw.hex()        # fallback if seed is binary
+
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) != 2:
+        print("Usage: python3 decrypt_seed.py <base64_encrypted_seed>")
+        sys.exit(1)
+    b64 = sys.argv[1]
+    print(decrypt_seed_hexstr_from_b64(b64))
