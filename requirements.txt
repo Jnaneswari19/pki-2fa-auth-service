@@ -1,5 +1,4 @@
 fastapi
 uvicorn
 pyotp
-cryptography
-qrcode
+pycryptodome
