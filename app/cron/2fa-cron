@@ -1,2 +1,2 @@
 PATH=/usr/bin:/bin
-* * * * * echo "Cron running at $(date)" >> /var/log/cron.log 2>&1
+* * * * * root echo "Test cron fired at $(date)" >> /var/log/cron.log 2>&1

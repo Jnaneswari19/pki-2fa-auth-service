@@ -1,14 +1,20 @@
-# Copy cron job definition
-COPY app/cron/test-cron /etc/cron.d/test-cron
+# Base image
+FROM python:3.10-slim
 
-# Set correct permissions
-RUN chmod 0644 /etc/cron.d/test-cron
+# Install cron and procps (for debugging)
+RUN apt-get update && apt-get install -y cron procps
 
-# Register cron job
-RUN crontab /etc/cron.d/test-cron
+# Set working directory
+WORKDIR /app
+
+# Copy cron file
+COPY app/cron/2fa-cron /etc/cron.d/2fa-cron
+
+# Set permissions
+RUN chmod 0644 /etc/cron.d/2fa-cron
 
 # Ensure log file exists
-RUN touch /tmp/test.log
+RUN touch /var/log/cron.log
 
-# Keep cron alive in foreground
+# Start cron in foreground
 CMD cron -f
