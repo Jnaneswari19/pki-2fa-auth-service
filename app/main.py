@@ -1,13 +1,11 @@
 from fastapi import FastAPI
-from generate_otp import generate_totp
+from app.generate_otp import generate_totp   # fixed import
+import os
 
 app = FastAPI()
 
-@app.get("/otp")
-def get_otp():
-    # read seed from file
-    with open("/data/seed.txt", "r") as f:
-        hex_seed = f.read().strip()
-
-    otp = generate_totp(hex_seed)
-    return {"otp": otp}
+@app.get("/generate-2fa")
+def generate_2fa():
+    secret = "JBSWY3DPEHPK3PXP"  # example secret
+    code = generate_totp(secret)
+    return {"2fa_code": code}

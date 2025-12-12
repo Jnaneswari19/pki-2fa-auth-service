@@ -3,7 +3,7 @@ FROM python:3.9-slim AS builder
 
 WORKDIR /app
 
-# Install dependencies into a user-local path
+# Install Python dependencies into user-local path
 COPY requirements.txt .
 RUN pip install --user -r requirements.txt
 
@@ -12,18 +12,27 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Copy installed packages from builder stage
-COPY --from=builder /root/.local /root/.local
+# Install cron and other utilities
+RUN apt-get update && apt-get install -y cron && rm -rf /var/lib/apt/lists/*
 
-# Update PATH so Python can find installed packages
+# Copy installed packages from builder
+COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
 
 # Copy application code
 COPY . .
 
+# Set cron job permissions
+COPY app/cron/2fa-cron /etc/cron.d/2fa-cron
+RUN chmod 0644 /etc/cron.d/2fa-cron
+RUN crontab /etc/cron.d/2fa-cron
+
 # Expose FastAPI port
 EXPOSE 8000
 
-# Run FastAPI app
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Copy start script
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
+# Run both cron and FastAPI
+CMD ["/start.sh"]
