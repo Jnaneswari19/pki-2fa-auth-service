@@ -1,0 +1,3 @@
+PATH=/usr/bin:/bin
+* * * * * echo "Test cron fired at 12/12/2025 19:08:07" >> /var/log/cron.log 2>&1
+
