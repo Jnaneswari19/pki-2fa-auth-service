@@ -1,27 +1,9 @@
-version: "3.9"
-
 services:
-  api:
+  app:
     build: .
     container_name: pki-2fa-app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
-    depends_on:
-      - init
-
-  init:
-    build: .
-    container_name: pki-2fa-init
-    command: python app/init.py
-    volumes:
-      - .:/app
-
-  cron:
-    build: .
-    container_name: pki-2fa-cron
-    command: python app/cron.py
-    volumes:
-      - .:/app
+      - ./data:/app/data
