@@ -1,12 +1,14 @@
-FROM python:3.11-slim
+# Copy cron job definition
+COPY app/cron/test-cron /etc/cron.d/test-cron
 
-WORKDIR /app
+# Set correct permissions
+RUN chmod 0644 /etc/cron.d/test-cron
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Register cron job
+RUN crontab /etc/cron.d/test-cron
 
-COPY . .
+# Ensure log file exists
+RUN touch /tmp/test.log
 
-EXPOSE 8000
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Keep cron alive in foreground
+CMD cron -f
