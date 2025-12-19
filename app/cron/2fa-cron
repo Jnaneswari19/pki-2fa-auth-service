@@ -1,2 +1,0 @@
-PATH=/usr/bin:/bin
-* * * * * root echo "Test cron fired at $(date)" >> /var/log/cron.log 2>&1
