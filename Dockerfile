@@ -1,28 +1,25 @@
-FROM python:3.11-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    DATA_DIR=/app/data \
-    API_PORT=8000
+FROM python:3.11-alpine
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends cron && rm -rf /var/lib/apt/lists/*
+# Install cron (dcron) and build tools
+RUN apk add --no-cache gcc musl-dev libffi-dev dcron
 
+# Copy requirements and install
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# App and cron
-COPY app/ ./app/
-COPY cronjob /etc/cron.d/cronjob
-RUN chmod 0644 /etc/cron.d/cronjob && crontab /etc/cron.d/cronjob
+# Copy application code
+COPY . .
 
-# Committed keys and instructor key (required by spec)
-COPY student_private.pem /app/student_private.pem
-COPY student_public.pem /app/student_public.pem
-COPY instructor_public.pem /app/instructor_public.pem
-
+# Create data directory
 RUN mkdir -p /app/data
+
+# Add cron job: heartbeat every minute
+RUN echo '* * * * * echo "$(date) heartbeat" >> /app/data/cron.log' > /etc/crontabs/root
+
+# Expose FastAPI port
 EXPOSE 8000
 
-CMD cron && uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT}
+# Start cron and FastAPI together
+CMD crond && uvicorn app.main:app --host 0.0.0.0 --port 8000

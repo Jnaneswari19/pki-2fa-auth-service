@@ -4,9 +4,10 @@ import uvicorn
 
 from app.storage import ensure_dirs, file_exists
 from app.crypto_rsa import decrypt_base64_ciphertext_with_student
-from app.totp_service import set_seed, generate_code, verify_code
+from app.totp_service import generate_code, verify_code
 from app.config import SEED_PATH, STUDENT_PRIV_PATH, STUDENT_PUB_PATH, API_PORT
 
+# Critical: FastAPI instance must be named "app"
 app = FastAPI(title="PKI 2FA Auth Service", version="1.0.0")
 
 class CipherRequest(BaseModel):

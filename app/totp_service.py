@@ -1,24 +1,27 @@
 import pyotp
-from app.config import SEED_PATH
-from app.storage import read_text, write_text
-
-def set_seed(seed_hex: str):
-    write_text(SEED_PATH, seed_hex)
-
-def get_seed():
-    return read_text(SEED_PATH)
+import base64
+import binascii
 
 def _hex_to_base32(hex_str: str) -> str:
-    return pyotp.utils.bytes_to_base32(bytes.fromhex(hex_str))
+    seed_bytes = binascii.unhexlify(hex_str)
+    return base64.b32encode(seed_bytes).decode("utf-8")
 
-def generate_code():
-    seed_hex = get_seed()
+def set_seed(seed_hex: str):
+    # Keep this if main.py imports set_seed
+    with open("/app/data/seed.txt", "w") as f:
+        f.write(seed_hex.strip())
+
+def generate_code() -> str:
+    with open("/app/data/seed.txt") as f:
+        seed_hex = f.read().strip()
     secret = _hex_to_base32(seed_hex)
-    totp = pyotp.TOTP(secret, digits=6, interval=30)
+    totp = pyotp.TOTP(secret)
     return totp.now()
 
-def verify_code(code: str):
-    seed_hex = get_seed()
+def verify_code(code: str) -> bool:
+    with open("/app/data/seed.txt") as f:
+        seed_hex = f.read().strip()
     secret = _hex_to_base32(seed_hex)
-    totp = pyotp.TOTP(secret, digits=6, interval=30)
-    return bool(totp.verify(code, valid_window=1))
+    totp = pyotp.TOTP(secret)
+    # Allow ±1 time step to tolerate clock drift or request lag
+    return totp.verify(code, valid_window=1)
