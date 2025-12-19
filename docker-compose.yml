@@ -1,0 +1,12 @@
+services:
+  pki-2fa-app:
+    build: .
+    container_name: pki-2fa-app
+    ports:
+      - "8000:8000"
+    environment:
+      - API_PORT=8000
+      - DATA_DIR=/app/data
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

@@ -1,0 +1,1 @@
+* * * * * root python -c "from app.cron_tasks import heartbeat; heartbeat()" >> /app/data/cron.log 2>&1
